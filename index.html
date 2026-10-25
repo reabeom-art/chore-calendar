@@ -9,6 +9,9 @@
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <!-- Lucide Icons -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+  <!-- Firebase SDK (App & Realtime Database) -->
+  <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-database-compat.js"></script>
   <!-- Pretendard Font -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   
@@ -64,9 +67,15 @@
             <p class="text-[11px] text-slate-400 font-medium mt-0.5">연지와 래범이의 화목한 집안일 분담</p>
           </div>
         </div>
-        <button id="quickTodayBtn" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors border border-orange-200/60 flex items-center gap-1">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>오늘
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button id="syncStatusBtn" type="button" class="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200/70 transition-colors border border-slate-200/70 flex items-center gap-1.5">
+            <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="syncStatusText">연결중</span>
+          </button>
+          <button id="quickTodayBtn" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors border border-orange-200/60 flex items-center gap-1">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>오늘
+          </button>
+        </div>
       </div>
     </header>
 
@@ -276,29 +285,183 @@
       };
     }
 
-    // 데이터 로드/저장
-    function loadData() {
+    // Firebase Realtime Database 설정
+    const FIREBASE_DB_URL = 'https://housechore-calender-default-rtdb.firebaseio.com';
+    const FIREBASE_DB_PATH = 'choreCalendar';
+    let dbRef = null;
+    let isFirebaseConnected = false;
+    let lastSyncError = '';
+
+    function normalizeArray(val) {
+      if (!val) return [];
+      if (Array.isArray(val)) return val.filter(Boolean);
+      if (typeof val === 'object') return Object.values(val).filter(Boolean);
+      return [];
+    }
+
+    function updateSyncBadge(state, detail) {
+      const btn = document.getElementById('syncStatusBtn');
+      const dot = document.getElementById('syncStatusDot');
+      const txt = document.getElementById('syncStatusText');
+      if (!btn || !dot || !txt) return;
+
+      if (state === 'connected') {
+        isFirebaseConnected = true;
+        lastSyncError = '';
+        btn.className = 'text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors border border-emerald-200/70 flex items-center gap-1.5';
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+        txt.textContent = '실시간 연동중';
+      } else if (state === 'error') {
+        isFirebaseConnected = false;
+        lastSyncError = detail || 'Firebase 권한 또는 네트워크 확인 필요';
+        btn.className = 'text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border border-amber-200/70 flex items-center gap-1.5';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+        txt.textContent = '로컬 모드';
+      } else {
+        btn.className = 'text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200/70 transition-colors border border-slate-200/70 flex items-center gap-1.5';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+        txt.textContent = '연결중';
+      }
+    }
+
+    function saveLocalBackup() {
+      try {
+        localStorage.setItem('prod_chore_logs', JSON.stringify(choreLogs));
+        localStorage.setItem('prod_chore_memos', JSON.stringify(choreMemos));
+        localStorage.setItem('prod_chore_presets', JSON.stringify(customPresets));
+      } catch (e) { console.error('Local Save Err:', e); }
+    }
+
+    function loadLocalBackup() {
       try {
         const storedLogs = localStorage.getItem('prod_chore_logs');
         const storedMemos = localStorage.getItem('prod_chore_memos');
         const storedPresets = localStorage.getItem('prod_chore_presets');
 
         if (storedLogs && storedMemos) {
-          choreLogs = JSON.parse(storedLogs);
-          choreMemos = JSON.parse(storedMemos);
-          customPresets = storedPresets ? JSON.parse(storedPresets) : [];
+          choreLogs = normalizeArray(JSON.parse(storedLogs));
+          choreMemos = normalizeArray(JSON.parse(storedMemos));
+          customPresets = storedPresets ? normalizeArray(JSON.parse(storedPresets)) : [];
         } else {
           const s = getSampleData();
           choreLogs = s.logs; choreMemos = s.memos; customPresets = s.presets;
-          saveData();
+          saveLocalBackup();
         }
-      } catch (e) { console.error('Storage Err:', e); }
+      } catch (e) {
+        const s = getSampleData();
+        choreLogs = s.logs; choreMemos = s.memos; customPresets = s.presets;
+      }
+    }
+
+    function applyRemoteData(data) {
+      choreLogs = normalizeArray(data.logs);
+      choreMemos = normalizeArray(data.memos);
+      customPresets = normalizeArray(data.presets);
+      saveLocalBackup();
+      renderCalendar();
+      renderStats();
+      renderMemos();
+      renderPresets();
+      if (!document.getElementById('dayModal').classList.contains('hidden') && selectedModalDate) {
+        const y = selectedModalDate.getFullYear();
+        const m = selectedModalDate.getMonth();
+        const d = selectedModalDate.getDate();
+        const dayLogs = choreLogs.filter(l => {
+          const dt = new Date(l.timestamp);
+          return dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d;
+        });
+        openDayModal(y, m, d, dayLogs);
+      }
+    }
+
+    // 데이터 로드/저장 (Firebase Realtime Database + LocalStorage 백업)
+    function loadData() {
+      loadLocalBackup();
+      updateSyncBadge('connecting');
+
+      try {
+        if (typeof firebase !== 'undefined') {
+          if (!firebase.apps.length) {
+            firebase.initializeApp({ databaseURL: FIREBASE_DB_URL });
+          }
+          dbRef = firebase.database().ref(FIREBASE_DB_PATH);
+          dbRef.on('value', (snapshot) => {
+            const val = snapshot.val();
+            updateSyncBadge('connected');
+            if (val === null) {
+              // DB가 비어 있으면 현재 로컬 데이터를 초기 데이터로 업로드
+              saveData();
+            } else {
+              applyRemoteData(val);
+            }
+          }, (err) => {
+            console.warn('Firebase Listener Err:', err);
+            fallbackRestLoad();
+          });
+        } else {
+          fallbackRestLoad();
+        }
+      } catch (e) {
+        console.warn('Firebase Init Err:', e);
+        fallbackRestLoad();
+      }
+    }
+
+    async function fallbackRestLoad() {
+      try {
+        const res = await fetch(`https://housechore-calender-default-rtdb.firebaseio.com/${FIREBASE_DB_PATH}.json`);
+        if (!res.ok) {
+          updateSyncBadge('error', `HTTP ${res.status}: Firebase 규칙(.read/.write)을 확인해 주세요`);
+          return;
+        }
+        const val = await res.json();
+        updateSyncBadge('connected');
+        if (val === null) {
+          saveData();
+        } else {
+          applyRemoteData(val);
+        }
+      } catch (e) {
+        updateSyncBadge('error', '네트워크 또는 Firebase 규칙(.read/.write)을 확인해 주세요');
+      }
     }
 
     function saveData() {
-      localStorage.setItem('prod_chore_logs', JSON.stringify(choreLogs));
-      localStorage.setItem('prod_chore_memos', JSON.stringify(choreMemos));
-      localStorage.setItem('prod_chore_presets', JSON.stringify(customPresets));
+      saveLocalBackup();
+      const payload = {
+        logs: choreLogs,
+        memos: choreMemos,
+        presets: customPresets,
+        updatedAt: Date.now()
+      };
+
+      if (dbRef) {
+        dbRef.set(payload)
+          .then(() => updateSyncBadge('connected'))
+          .catch((err) => {
+            console.warn('Firebase Set Err:', err);
+            fallbackRestSave(payload);
+          });
+      } else {
+        fallbackRestSave(payload);
+      }
+    }
+
+    async function fallbackRestSave(payload) {
+      try {
+        const res = await fetch(`https://housechore-calender-default-rtdb.firebaseio.com/${FIREBASE_DB_PATH}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          updateSyncBadge('connected');
+        } else {
+          updateSyncBadge('error', `저장 권한 필요 (HTTP ${res.status})`);
+        }
+      } catch (e) {
+        updateSyncBadge('error', '오프라인 상태 (로컬에 임시 저장됨)');
+      }
     }
 
     // 토스트 알림
@@ -499,6 +662,14 @@
       document.getElementById('openAddViewBtn').onclick = () => setView('add');
       document.getElementById('closeAddViewBtn').onclick = () => setView('calendar');
       document.getElementById('quickTodayBtn').onclick = () => { currentDate = new Date(); renderCalendar(); renderStats(); showToast('오늘로 이동됨'); };
+      document.getElementById('syncStatusBtn').onclick = () => {
+        if (isFirebaseConnected) {
+          showToast('Firebase 실시간 데이터베이스와 연동 중입니다 ✨');
+        } else {
+          showToast(lastSyncError || 'Firebase 콘솔 > 규칙(Rules)에서 .read/.write를 true로 설정해 주세요');
+          fallbackRestLoad();
+        }
+      };
       
       document.getElementById('prevMonthBtn').onclick = () => { currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth()-1, 1); renderCalendar(); renderStats(); };
       document.getElementById('nextMonthBtn').onclick = () => { currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth()+1, 1); renderCalendar(); renderStats(); };
