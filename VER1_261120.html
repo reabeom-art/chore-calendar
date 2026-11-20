@@ -174,17 +174,18 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- 2. 기록 추가 화면                             -->
+  <!-- 2. 기록 추가 화면 (다중 선택 + 완료 버튼)      -->
   <!-- ========================================== -->
-  <div id="addView" class="hidden animate-slide-up min-h-screen bg-white pb-16">
-    <header class="bg-white p-4 sticky top-0 z-20 border-b border-slate-100">
-      <div class="max-w-xl mx-auto flex items-center relative">
-        <button id="closeAddViewBtn" type="button" class="absolute left-0 p-2 text-slate-400 hover:bg-slate-50 rounded-full transition"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-        <h1 class="text-lg font-extrabold text-slate-700 w-full text-center">새로운 기록</h1>
+  <div id="addView" class="hidden animate-slide-up min-h-screen bg-white pb-32">
+    <header class="bg-white/95 backdrop-blur-md p-4 sticky top-0 z-20 border-b border-slate-100">
+      <div class="max-w-xl mx-auto flex items-center justify-between relative">
+        <button id="closeAddViewBtn" type="button" class="p-2 -ml-2 text-slate-400 hover:bg-slate-50 rounded-full transition"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+        <h1 class="text-lg font-extrabold text-slate-700">새로운 기록</h1>
+        <button id="clearSelectedChoresBtn" type="button" class="text-xs font-bold text-slate-400 hover:text-rose-500 px-2 py-1 rounded-lg transition-colors">초기화</button>
       </div>
     </header>
 
-    <main class="max-w-xl mx-auto p-5 space-y-7 mt-2">
+    <main class="max-w-xl mx-auto p-5 space-y-6 mt-1">
       <!-- 담당자 선택 -->
       <section>
         <h2 class="text-sm font-bold mb-3 flex items-center gap-1.5 text-slate-500"><i data-lucide="user" class="w-4 h-4 text-slate-400"></i>누가 했나요?</h2>
@@ -200,10 +201,24 @@
         <input id="choreDateInput" type="date" class="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none" />
       </section>
 
-      <!-- 자주 하는 항목 -->
+      <!-- 자주 하는 항목 (다중 선택 가능) -->
       <section>
-        <h2 class="text-sm font-bold mb-3 flex items-center gap-1.5 text-slate-500"><i data-lucide="check-circle-2" class="w-4 h-4 text-slate-400"></i>자주 하는 집안일 목록</h2>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold flex items-center gap-1.5 text-slate-500">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-slate-400"></i>
+            <span>자주 하는 집안일 목록</span>
+            <span class="text-[11px] font-medium text-slate-400">(여러 개 선택 가능)</span>
+          </h2>
+          <span id="selectedCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500">0개 선택됨</span>
+        </div>
+
+        <!-- 선택된 항목 미리보기 태그 영역 (선택 시 표시) -->
+        <div id="selectedPreviewBox" class="hidden mb-3 p-3 rounded-2xl bg-orange-50/70 border border-orange-100 flex flex-wrap gap-1.5 items-center">
+          <!-- JS로 선택된 항목 태그 렌더링 -->
+        </div>
+
         <div id="presetsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+        
         <div class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 flex gap-2">
           <input id="newPresetInput" type="text" placeholder="새 고정 항목 추가 (예: 식물 물주기)" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none" />
           <button id="newPresetBtn" type="button" class="px-3.5 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-bold active:scale-95 transition-transform whitespace-nowrap">추가</button>
@@ -212,17 +227,27 @@
 
       <div class="h-px w-full bg-slate-100"></div>
 
-      <!-- 1회성 항목 -->
+      <!-- 1회성 항목 (선택 목록에 담기) -->
       <section>
-        <h2 class="text-sm font-bold mb-3 text-slate-500">목록에 없는 집안일인가요?</h2>
+        <h2 class="text-sm font-bold mb-3 text-slate-500">목록에 없는 집안일도 함께 추가할까요?</h2>
         <div class="flex gap-2">
-          <input id="oneTimeChoreInput" type="text" placeholder="직접 입력" class="flex-1 px-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl text-sm focus:outline-none focus:border-orange-300" />
-          <button id="oneTimeChoreBtn" type="button" class="px-6 py-3.5 bg-slate-700 text-white rounded-2xl font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 whitespace-nowrap">
-            <i data-lucide="plus" class="w-4 h-4"></i>기록
+          <input id="oneTimeChoreInput" type="text" placeholder="직접 입력 후 담기 (예: 창틀 닦기)" class="flex-1 px-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl text-sm focus:outline-none focus:border-orange-300" />
+          <button id="oneTimeChoreBtn" type="button" class="px-5 py-3.5 bg-slate-700 text-white rounded-2xl font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 whitespace-nowrap">
+            <i data-lucide="plus" class="w-4 h-4"></i>담기
           </button>
         </div>
       </section>
     </main>
+
+    <!-- 하단 고정 '완료' 버튼 바 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+      <div class="max-w-xl mx-auto">
+        <button id="confirmAddChoresBtn" type="button" disabled class="w-full py-4 px-6 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 transition-all bg-slate-200 text-slate-400 cursor-not-allowed">
+          <i data-lucide="check" class="w-5 h-5 stroke-[2.5]"></i>
+          <span id="confirmAddChoresText">집안일을 선택해주세요</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ========================================== -->
@@ -261,6 +286,8 @@
     let selectedPerson = '연지';
     let memoRequester = '연지';
     let selectedModalDate = null;
+    // 다중 선택을 위한 임시 배열 (중복 방지 Set 대신 순서 유지를 위해 배열 사용)
+    let selectedChores = [];
     const defaultPresets = ['설거지', '화장실 청소', '빨래', '분리수거', '청소기', '바닥 닦기', '요리', '쓰레기 버리기'];
 
     // 유틸: 포맷팅
@@ -389,7 +416,6 @@
             const val = snapshot.val();
             updateSyncBadge('connected');
             if (val === null) {
-              // DB가 비어 있으면 현재 로컬 데이터를 초기 데이터로 업로드
               saveData();
             } else {
               applyRemoteData(val);
@@ -483,11 +509,14 @@
       document.getElementById('addView').classList.toggle('hidden', view !== 'add');
       
       if(view === 'calendar') {
+        selectedChores = []; // 캘린더로 돌아갈 때 임시 선택 초기화
         renderCalendar(); renderStats(); renderMemos();
       } else {
+        selectedChores = []; // 추가 화면 진입 시 임시 선택 초기화
         const now = new Date();
         document.getElementById('choreDateInput').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
         renderPresets();
+        updateMultiSelectUI();
         window.scrollTo(0,0);
       }
       lucide.createIcons();
@@ -630,28 +659,127 @@
       lucide.createIcons();
     }
 
-    // 기록 추가 함수들
+    // 다중 선택 토글 함수 (클릭 시 자동 추가 대신 선택 상태만 토글)
+    function toggleSelectChore(choreName) {
+      const trimmed = choreName.trim();
+      if (!trimmed) return;
+
+      const idx = selectedChores.indexOf(trimmed);
+      if (idx > -1) {
+        selectedChores.splice(idx, 1);
+      } else {
+        selectedChores.push(trimmed);
+      }
+      renderPresets();
+      updateMultiSelectUI();
+    }
+
+    // 다중 선택 UI (선택 배지, 미리보기 태그, 하단 '완료' 버튼) 동기화
+    function updateMultiSelectUI() {
+      const count = selectedChores.length;
+      const badge = document.getElementById('selectedCountBadge');
+      const previewBox = document.getElementById('selectedPreviewBox');
+      const confirmBtn = document.getElementById('confirmAddChoresBtn');
+      const confirmText = document.getElementById('confirmAddChoresText');
+      const isY = selectedPerson === '연지';
+
+      badge.textContent = `${count}개 선택됨`;
+      if (count > 0) {
+        badge.className = isY
+          ? 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-600'
+          : 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-600';
+      } else {
+        badge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500';
+      }
+
+      // 선택된 항목 미리보기 태그 렌더링 (직접 입력 항목 포함 확인 가능)
+      if (count > 0) {
+        previewBox.classList.remove('hidden');
+        previewBox.className = isY
+          ? 'mb-3 p-3 rounded-2xl bg-rose-50/70 border border-rose-100 flex flex-wrap gap-1.5 items-center'
+          : 'mb-3 p-3 rounded-2xl bg-blue-50/70 border border-blue-100 flex flex-wrap gap-1.5 items-center';
+        previewBox.innerHTML = '';
+
+        selectedChores.forEach(item => {
+          const tag = document.createElement('button');
+          tag.type = 'button';
+          tag.className = isY
+            ? 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-rose-600 border border-rose-200 shadow-xs active:scale-95'
+            : 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-blue-600 border border-blue-200 shadow-xs active:scale-95';
+          tag.innerHTML = `<span>${item}</span><span class="opacity-60">✕</span>`;
+          tag.onclick = () => toggleSelectChore(item);
+          previewBox.appendChild(tag);
+        });
+      } else {
+        previewBox.classList.add('hidden');
+        previewBox.innerHTML = '';
+      }
+
+      // 하단 '완료' 버튼 활성화 및 스타일 업데이트
+      if (count > 0) {
+        confirmBtn.disabled = false;
+        confirmBtn.className = isY
+          ? 'w-full py-4 px-6 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-orange-400 to-rose-400 text-white shadow-lg shadow-rose-200/80 active:scale-95 cursor-pointer'
+          : 'w-full py-4 px-6 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-200/80 active:scale-95 cursor-pointer';
+        confirmText.textContent = `완료 (${selectedPerson} · ${count}개 추가하기)`;
+      } else {
+        confirmBtn.disabled = true;
+        confirmBtn.className = 'w-full py-4 px-6 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 transition-all bg-slate-200 text-slate-400 cursor-not-allowed';
+        confirmText.textContent = '집안일을 선택해주세요';
+      }
+      lucide.createIcons();
+    }
+
+    // 기록 추가 화면 프리셋 렌더링 (다중 선택 상태 반영)
     function renderPresets() {
       const grid = document.getElementById('presetsGrid'); grid.innerHTML = '';
+      const isY = selectedPerson === '연지';
+
       [...defaultPresets, ...customPresets.map(p=>p.chore)].forEach(chore => {
+        const isSelected = selectedChores.includes(chore);
         const btn = document.createElement('button');
-        btn.className = 'py-3 px-2 bg-white border border-slate-200 rounded-xl text-sm font-bold active:scale-95 shadow-sm';
-        btn.textContent = chore;
-        btn.onclick = () => addChore(chore);
+        btn.type = 'button';
+
+        if (isSelected) {
+          btn.className = isY
+            ? 'py-3 px-3 bg-rose-50 border-2 border-rose-400 text-rose-600 rounded-xl text-sm font-extrabold active:scale-95 shadow-sm flex items-center justify-between gap-1 transition-all'
+            : 'py-3 px-3 bg-blue-50 border-2 border-blue-400 text-blue-600 rounded-xl text-sm font-extrabold active:scale-95 shadow-sm flex items-center justify-between gap-1 transition-all';
+          btn.innerHTML = `<span class="truncate">${chore}</span><span class="w-4 h-4 rounded-full ${isY ? 'bg-rose-400' : 'bg-blue-400'} text-white flex items-center justify-center text-[10px] flex-shrink-0">✓</span>`;
+        } else {
+          btn.className = 'py-3 px-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-bold active:scale-95 shadow-sm flex items-center justify-between gap-1 transition-all';
+          btn.innerHTML = `<span class="truncate">${chore}</span><span class="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"></span>`;
+        }
+
+        // 클릭 시 바로 추가되지 않고 다중 선택 상태만 토글!
+        btn.onclick = () => toggleSelectChore(chore);
         grid.appendChild(btn);
       });
     }
 
-    function addChore(chore) {
-      if(!chore.trim()) return;
-      let ts = Date.now();
+    // '완료' 버튼 클릭 시 선택된 모든 집안일을 일괄 저장하고 캘린더로 복귀
+    function confirmAddSelectedChores() {
+      if (selectedChores.length === 0) return;
+
+      let baseTs = Date.now();
       const dt = document.getElementById('choreDateInput').value;
-      if(dt) {
+      if (dt) {
         const [yy, mm, dd] = dt.split('-');
-        ts = new Date(yy, mm-1, dd, new Date().getHours(), new Date().getMinutes()).getTime();
+        baseTs = new Date(yy, mm - 1, dd, new Date().getHours(), new Date().getMinutes()).getTime();
       }
-      choreLogs.unshift({ id: 'l_'+Date.now(), person: selectedPerson, chore: chore.trim(), timestamp: ts });
-      saveData(); showToast(`${selectedPerson}의 '${chore}' 추가 완료!`);
+
+      const addedCount = selectedChores.length;
+      // 선택 순서가 유지되도록 역순으로 unshift하여 배열 앞쪽에 차례로 배치
+      [...selectedChores].reverse().forEach((chore, idx) => {
+        choreLogs.unshift({
+          id: `l_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+          person: selectedPerson,
+          chore: chore.trim(),
+          timestamp: baseTs + idx
+        });
+      });
+
+      saveData();
+      showToast(`${selectedPerson}의 집안일 ${addedCount}개 추가 완료! 🎉`);
       setView('calendar');
     }
 
@@ -661,6 +789,13 @@
 
       document.getElementById('openAddViewBtn').onclick = () => setView('add');
       document.getElementById('closeAddViewBtn').onclick = () => setView('calendar');
+      document.getElementById('clearSelectedChoresBtn').onclick = () => {
+        selectedChores = [];
+        renderPresets();
+        updateMultiSelectUI();
+      };
+      document.getElementById('confirmAddChoresBtn').onclick = confirmAddSelectedChores;
+
       document.getElementById('quickTodayBtn').onclick = () => { currentDate = new Date(); renderCalendar(); renderStats(); showToast('오늘로 이동됨'); };
       document.getElementById('syncStatusBtn').onclick = () => {
         if (isFirebaseConnected) {
@@ -687,22 +822,48 @@
       document.getElementById('memoSubmitBtn').onclick = addMemo;
       document.getElementById('memoTextInput').onkeydown = (e) => { if(e.key==='Enter') addMemo(); };
 
-      // 집안일 등록
+      // 집안일 등록 담당자 전환 (선택 테마 색상을 담당자에 맞춰 실시간 갱신)
       const pyBtn = document.getElementById('personYeonjiBtn'), prBtn = document.getElementById('personRaebeomBtn');
-      pyBtn.onclick = () => { selectedPerson='연지'; pyBtn.className='flex-1 py-4 rounded-2xl text-lg font-bold border-2 bg-rose-50 border-rose-400 text-rose-500 shadow-md scale-105'; prBtn.className='flex-1 py-4 rounded-2xl text-lg font-bold border-2 bg-white border-slate-100 text-slate-400'; };
-      prBtn.onclick = () => { selectedPerson='래범'; prBtn.className='flex-1 py-4 rounded-2xl text-lg font-bold border-2 bg-blue-50 border-blue-400 text-blue-500 shadow-md scale-105'; pyBtn.className='flex-1 py-4 rounded-2xl text-lg font-bold border-2 bg-white border-slate-100 text-slate-400'; };
+      pyBtn.onclick = () => {
+        selectedPerson='연지';
+        pyBtn.className='flex-1 py-4 rounded-2xl text-lg font-bold border-2 bg-rose-50 border-rose-400 text-rose-500 shadow-md scale-105';
+        prBtn.className='flex-1 py-4 rounded-2xl text-lg font-bold border-2 bg-white border-slate-100 text-slate-400';
+        renderPresets();
+        updateMultiSelectUI();
+      };
+      prBtn.onclick = () => {
+        selectedPerson='래범';
+        prBtn.className='flex-1 py-4 rounded-2xl text-lg font-bold border-2 bg-blue-50 border-blue-400 text-blue-500 shadow-md scale-105';
+        pyBtn.className='flex-1 py-4 rounded-2xl text-lg font-bold border-2 bg-white border-slate-100 text-slate-400';
+        renderPresets();
+        updateMultiSelectUI();
+      };
 
       const addNewPreset = () => {
-        const v = document.getElementById('newPresetInput').value; if(!v.trim()) return;
-        customPresets.push({ id:'p_'+Date.now(), chore:v }); saveData();
-        document.getElementById('newPresetInput').value = ''; renderPresets(); showToast('새 항목 추가됨');
+        const v = document.getElementById('newPresetInput').value.trim(); if(!v) return;
+        customPresets.push({ id:'p_'+Date.now(), chore:v });
+        if (!selectedChores.includes(v)) {
+          selectedChores.push(v); // 새 고정 항목 추가 시 바로 선택 상태에도 담아둠
+        }
+        saveData();
+        document.getElementById('newPresetInput').value = '';
+        renderPresets();
+        updateMultiSelectUI();
+        showToast('새 항목 추가 및 선택됨');
       };
       document.getElementById('newPresetBtn').onclick = addNewPreset;
       document.getElementById('newPresetInput').onkeydown = (e) => { if(e.key==='Enter') addNewPreset(); };
 
+      // 직접 입력 항목도 자동 저장 대신 선택 목록에 담기
       const addOneTime = () => {
-        const v = document.getElementById('oneTimeChoreInput').value; if(!v.trim()) return;
-        addChore(v); document.getElementById('oneTimeChoreInput').value = '';
+        const v = document.getElementById('oneTimeChoreInput').value.trim(); if(!v) return;
+        if (!selectedChores.includes(v)) {
+          selectedChores.push(v);
+        }
+        document.getElementById('oneTimeChoreInput').value = '';
+        renderPresets();
+        updateMultiSelectUI();
+        showToast(`'${v}' 선택 목록에 담겼습니다`);
       };
       document.getElementById('oneTimeChoreBtn').onclick = addOneTime;
       document.getElementById('oneTimeChoreInput').onkeydown = (e) => { if(e.key==='Enter') addOneTime(); };
